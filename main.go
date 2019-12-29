@@ -1,6 +1,5 @@
 package main
 
-//import "github.com/jacobsa/go-serial/serial"
 import (
 	"fmt"
 	"github.com/creasty/defaults"
@@ -120,29 +119,30 @@ type readRegRequest struct {
 	EndMarker     byte `default:"205"`
 }
 
-func writeRegisterRequest(p *serial.Port, reg byte, val uint32) {
-	var reqMsg [10] byte
-	reqMsg[0] = START_MARKER
-	reqMsg[1] = 0x05 //payload Length 2 bytes
-	reqMsg[2] = 0x00
-	reqMsg[3] = T_REG_WRITE
-	reqMsg[4] = reg
-	reqMsg[5] = byte(val >> 24)
-	reqMsg[6] = byte(val >> 16)
-	reqMsg[7] = byte(val >> 8)
-	reqMsg[8] = byte(val & 0xff)
-	reqMsg[9] = END_MARKER
+type writeRegRequest struct {
+	StartMarker   byte   `default:"204"`
+	PayloadLength uint16 `default:"0005"`
+	RequestType   byte   `default:"249"`
+	Register      byte
+	Value         uint32
+	EndMarker     byte `default:"205"`
 }
 
-func readRegisterRequest(p *serial.Port, reg byte) {
+type readRegResponse struct {
+	StartMarker   byte
+	PayloadLength uint16
+	RequestType   byte
+	Register      byte
+	Value         uint32
+	EndMarker     byte
+}
 
-	req := &readRegRequest{}
+func writeRegisterRequest(p *serial.Port, reg byte, val uint32) {
+	req := &writeRegRequest{Value: val, Register: reg}
 	err := defaults.Set(req)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	req.Register = reg
 
 	if bbuf, err := binary.Encode(req, nil); err == nil {
 		_, err := p.Write(bbuf)
@@ -150,76 +150,47 @@ func readRegisterRequest(p *serial.Port, reg byte) {
 			log.Panic(err)
 		}
 		log.Trace(bbuf)
+	} else {
+		log.Panic(err)
+	}
+
+	log.Debug("Send writeRegisterRequest for reg ", reg)
+}
+
+func readRegisterRequest(p *serial.Port, reg byte) {
+	req := &readRegRequest{Register: reg}
+	err := defaults.Set(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if bbuf, err := binary.Encode(req, nil); err == nil {
+		_, err := p.Write(bbuf)
+		if err != nil {
+			log.Panic(err)
+		}
+		log.Trace(bbuf)
+	} else {
+		log.Panic(err)
 	}
 
 	log.Debug("Send readRegisterRequest for reg ", reg)
 }
 
 func readRegisterResponse(p *serial.Port) uint32 {
-	var buf [1] byte
-
-	var value uint32
-
-	expectState := START
-	for expectState != DONE {
-		_, err := p.Read(buf[:])
-		if err != nil {
-			log.Panic(err)
-		}
-		val := buf[0]
-		log.Trace("ExpectState: ", expectState)
-		switch expectState {
-
-		case START:
-			if val != START_MARKER {
-				log.Error("expected start marker, got ", val)
-			}
-			expectState++
-		case PAYLOAD_LEN_LOW:
-			expectState++
-		case PAYLOAD_LEN_HIGH:
-			expectState++
-		case TYPE:
-			{
-				if val != T_REG_READ_RESP {
-					log.Error("expected start Register Read response, got ", val)
-				}
-				expectState++
-			}
-		case ADDRESS:
-			{
-				expectState++
-			}
-
-		case VALUE1:
-			{
-				value = uint32(val)
-				expectState++
-			}
-		case VALUE2:
-			{
-				value |= uint32(val) << 8
-				expectState++
-			}
-		case VALUE3:
-			{
-				value |= uint32(val) << 16
-				expectState++
-			}
-		case VALUE4:
-			{
-				value |= uint32(val) << 24
-				expectState++
-			}
-		case END:
-			{
-				if val != END_MARKER {
-					log.Error("expected END MARKER   got", val)
-				}
-				expectState++
-			}
-
-		}
+	resp := &readRegResponse{}
+	sz := binary.Size(resp)
+	buffer := make([]byte, sz)
+	numRead, err := p.Read(buffer)
+	if numRead != sz {
+		log.Warn("did not recieve expected data, got vs expected: ", numRead, " ", sz)
 	}
-	return value
+	if err != nil {
+		log.Error(err)
+	}
+	err = binary.Decode(buffer, resp)
+	if err != nil {
+		log.Error(err)
+	}
+	return resp.Value
 }
