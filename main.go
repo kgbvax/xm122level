@@ -70,16 +70,19 @@ const (
 	DIST_LENGTH                 RegT = 0x82
 	DIST_DATA_SATURATED         RegT = 0xA0
 	DIST_MISSED_DATA            RegT = 0xA1
-	DIST_REFL_COUNT             RegT = 0xB0
-	DIST_REFL_1_DISTANCE        RegT = 0xB1
-	DIST_REFL_1_AMPLITUDE       RegT = 0xB2
-	DIST_REFL_2_DISTANCE        RegT = 0xB3
-	DIST_REFL_2_AMPLITUDE       RegT = 0xB4
-	DIST_REFL_3_DISTANCE        RegT = 0xB5
-	DIST_REFL_3_AMPLITUDE       RegT = 0xB6
-	DIST_REFL_4_DISTANCE        RegT = 0xB7
-	DIST_REFL_5_AMPLITUDE       RegT = 0xB8
+	DistReflCount               RegT = 0xB0
+	DistRefl1Distance           RegT = 0xB1
+	DistRefl1Amplitude          RegT = 0xB2
+	DistRefl2Distance           RegT = 0xB3
+	DistRefl2Amplitude          RegT = 0xB4
+	DistRefl3Distance           RegT = 0xB5
+	DistRefl3Amplitude          RegT = 0xB6
+	DistRefl4Distance           RegT = 0xB7
+	DistRefl5Amplitude          RegT = 0xB8
 )
+
+var DistDistanceReg = [4]RegT{DistRefl1Distance, DistRefl2Distance, DistRefl3Distance, DistRefl4Distance}
+var DistAmplitudeReg = [4]RegT{DistRefl1Amplitude, DistRefl2Amplitude, DistRefl3Amplitude, DistRefl5Amplitude}
 
 func findPort() *string {
 	ports, err := serial.ListPorts()
@@ -128,7 +131,13 @@ func main() {
 		writeRegister(p, DIST_RANGE_START, 41)
 		checkStatus(p)
 
-		writeRegister(p, DIST_RANGE_LENGTH, 96)
+		writeRegister(p, DIST_RANGE_LENGTH, 1000) //mm
+		checkStatus(p)
+
+		writeRegister(p, DIST_UPDATE_RATE, 2000) //mHz
+		checkStatus(p)
+
+		writeRegister(p, DIST_PROFILE_SELECTION, 0x01) //mHz
 		checkStatus(p)
 
 		writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_FLAG_ERR)
@@ -138,10 +147,20 @@ func main() {
 		checkStatus(p)
 
 		for {
-			time.Sleep(1 * time.Second)
+			time.Sleep(1000 * time.Millisecond)
 			if checkStatus(p)&StatusDataReady != 0 {
-				reflCount := readRegister(p, DIST_REFL_COUNT)
+				reflCount := readRegister(p, DistReflCount)
+				if reflCount > 4 {
+					reflCount = 4
+				}
+
 				log.Debug("refl count ", reflCount)
+				for i := 0; i < int(reflCount); i++ {
+					distance := readRegister(p, DistDistanceReg[i])
+					amplitude := readRegister(p, DistAmplitudeReg[i])
+					dataLost := readRegister(p, DIST_MISSED_DATA)
+					log.Debugf("ref: %v dist:%v amp:%v  (lost: %v)", i, distance, amplitude, dataLost)
+				}
 			}
 
 		}
@@ -270,28 +289,28 @@ func checkStatus(p *serial.Port) uint32 {
 	regValue := readRegister(p, REG_STATUS)
 	log.Trace(fmt.Sprintf("Status 0x%x", regValue))
 	if 0 != regValue&StatusErrActivating {
-		log.Debug("STATUS: Error activating the requested service or detector")
+		log.Trace("STATUS: Error activating the requested service or detector")
 	}
 	if 0 != regValue&StatusErrCreating {
-		log.Debug("STATUS: Error creating the requested service or detector.")
+		log.Trace("STATUS: Error creating the requested service or detector.")
 	}
 	if 0 != regValue&StatusInvalidMode {
-		log.Debug("STATUS: Invalid Mode.")
+		log.Trace("STATUS: Invalid Mode.")
 	}
 	if 0 != regValue&StatusInvalidCommand {
-		log.Debug("STATUS: Invalid command or parameter received..")
+		log.Trace("STATUS: Invalid command or parameter received..")
 	}
 	if 0 != regValue&StatusError {
-		log.Debug("STATUS: An error occurred in the module.")
+		log.Trace("STATUS: An error occurred in the module.")
 	}
 	if 0 != regValue&StatusDataReady {
-		log.Debug("STATUS: Data is ready to be read from the buffer")
+		log.Trace("STATUS: Data is ready to be read from the buffer")
 	}
 	if 0 != regValue&StatusServActivated {
-		log.Debug("STATUS: Service or detector is activated.")
+		log.Trace("STATUS: Service or detector is activated.")
 	}
 	if 0 != regValue&StatusServ {
-		log.Debug("STATUS: Service or detector is created.")
+		log.Trace("STATUS: Service or detector is created.")
 	}
 
 	return regValue
