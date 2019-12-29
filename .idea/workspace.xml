@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ab9f415b-31fe-426f-a2ef-4653ce6d94a1" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/dictionaries/io.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
     </list>
@@ -67,32 +67,37 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="remove state machine" />
-    <option name="LAST_COMMIT_MESSAGE" value="remove state machine" />
+    <MESSAGE value="compact" />
+    <option name="LAST_COMMIT_MESSAGE" value="compact" />
   </component>
   <component name="WindowStateProjectService">
     <state x="320" y="127" key="#GOROOT" timestamp="1577653196835">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
     <state x="320" y="127" key="#GOROOT/0.23.1440.877@0.23.1440.877" timestamp="1577653196835" />
-    <state x="303" y="64" key="CommitChangelistDialog2" timestamp="1577654941264">
+    <state x="303" y="64" key="CommitChangelistDialog2" timestamp="1577655747894">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state x="303" y="64" key="CommitChangelistDialog2/0.23.1440.877@0.23.1440.877" timestamp="1577654941264" />
-    <state width="1358" height="217" key="GridCell.Tab.0.bottom" timestamp="1577655719450">
+    <state x="303" y="64" key="CommitChangelistDialog2/0.23.1440.877@0.23.1440.877" timestamp="1577655747894" />
+    <state width="1358" height="217" key="GridCell.Tab.0.bottom" timestamp="1577659977807">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1577655719450" />
-    <state width="1358" height="217" key="GridCell.Tab.0.center" timestamp="1577655719449">
+    <state width="1358" height="217" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1577659977807" />
+    <state width="1358" height="217" key="GridCell.Tab.0.center" timestamp="1577659977806">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1577655719449" />
-    <state width="1358" height="217" key="GridCell.Tab.0.left" timestamp="1577655719449">
+    <state width="1358" height="217" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1577659977806" />
+    <state width="1358" height="217" key="GridCell.Tab.0.left" timestamp="1577659977806">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1577655719449" />
-    <state width="1358" height="217" key="GridCell.Tab.0.right" timestamp="1577655719450">
+    <state width="1358" height="217" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1577659977806" />
+    <state width="1358" height="217" key="GridCell.Tab.0.right" timestamp="1577659977807">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1577655719450" />
+    <state width="1358" height="217" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1577659977807" />
+    <state x="385" y="223" key="search.everywhere.popup" timestamp="1577657434663">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="385" y="223" key="search.everywhere.popup/0.23.1440.877@0.23.1440.877" timestamp="1577657434663" />
   </component>
 </project>
