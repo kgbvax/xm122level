@@ -8,22 +8,26 @@ import (
 	"github.com/vipally/binary"
 )
 
-const START_MARKER byte = 0xCC
-const END_MARKER byte = 0xCD
-const T_REG_READ byte = 0xF8
-const T_REG_READ_RESP byte = 0xF6
-const T_REG_WRITE byte = 0xF9
+const (
+	START_MARKER    byte = 0xCC
+	END_MARKER      byte = 0xCD
+	T_REG_READ      byte = 0xF8
+	T_REG_READ_RESP byte = 0xF6
+	T_REG_WRITE     byte = 0xF9
+)
 
-const REG_MODE_SELECTION byte = 0x02
-const REG_MAIN_CONTROL byte = 0x03
-const REG_STREAMING_CONTROL byte = 0x05
-const REG_STATUS byte = 0x06
-const REG_BAUDRATE byte = 0x07
-const REG_POWER_MODE byte = 0x0A
-const REG_PRODUCT_IDENTIFICATION byte = 0x10
-const REG_PRODUCT_VERSION byte = 0x11
-const REG_MAX_BAUDRATE byte = 0x12
-const REG_OUTPUT_BUFFER_LENGTH byte = 0xE9
+const (
+	REG_MODE_SELECTION         byte = 0x02
+	REG_MAIN_CONTROL           byte = 0x03
+	REG_STREAMING_CONTROL      byte = 0x05
+	REG_STATUS                 byte = 0x06
+	REG_BAUDRATE               byte = 0x07
+	REG_POWER_MODE             byte = 0x0A
+	REG_PRODUCT_IDENTIFICATION byte = 0x10
+	REG_PRODUCT_VERSION        byte = 0x11
+	REG_MAX_BAUDRATE           byte = 0x12
+	REG_OUTPUT_BUFFER_LENGTH   byte = 0xE9
+)
 
 func findPort() *string {
 	ports, err := serial.ListPorts()
@@ -58,8 +62,7 @@ func main() {
 			log.Debug("opened port")
 		}
 
-		readRegisterRequest(p, REG_STATUS)
-		regValue := readRegisterResponse(p)
+		regValue := readRegister(p, REG_STATUS)
 		log.Info(fmt.Sprintf("Status 0x%x", regValue))
 		if 0 != regValue&0x00100000 {
 			log.Info("STATUS: Error activating the requested service or detector")
@@ -86,30 +89,14 @@ func main() {
 			log.Info("STATUS: Service or detector is created.")
 		}
 
-		readRegisterRequest(p, REG_MAX_BAUDRATE)
-		maxBaud := readRegisterResponse(p)
+		maxBaud := readRegister(p, REG_MAX_BAUDRATE)
 		log.Info("MaxBaud ", maxBaud)
+
+		writeRegister(p, REG_POWER_MODE, 0)
 
 		defer p.Close()
 	}
-
 }
-
-type ResponseStateT byte
-
-const (
-	START ResponseStateT = iota
-	PAYLOAD_LEN_LOW
-	PAYLOAD_LEN_HIGH
-	TYPE
-	ADDRESS
-	VALUE1
-	VALUE2
-	VALUE3
-	VALUE4
-	END
-	DONE
-)
 
 type readRegRequest struct {
 	StartMarker   byte   `default:"204"`
@@ -128,6 +115,15 @@ type writeRegRequest struct {
 	EndMarker     byte `default:"205"`
 }
 
+type writeRegResponse struct {
+	StartMarker   byte
+	PayloadLength uint16
+	RequestType   byte
+	Register      byte
+	Value         uint32
+	EndMarker     byte
+}
+
 type readRegResponse struct {
 	StartMarker   byte
 	PayloadLength uint16
@@ -137,7 +133,7 @@ type readRegResponse struct {
 	EndMarker     byte
 }
 
-func writeRegisterRequest(p *serial.Port, reg byte, val uint32) {
+func writeRegister(p *serial.Port, reg byte, val uint32) uint32 {
 	req := &writeRegRequest{Value: val, Register: reg}
 	err := defaults.Set(req)
 	if err != nil {
@@ -155,9 +151,26 @@ func writeRegisterRequest(p *serial.Port, reg byte, val uint32) {
 	}
 
 	log.Debug("Send writeRegisterRequest for reg ", reg)
+
+	resp := &writeRegResponse{}
+	sz := binary.Size(resp)
+	buffer := make([]byte, sz)
+	numRead, err := p.Read(buffer)
+	if numRead != sz {
+		log.Warn("did not recieve expected data, got vs expected: ", numRead, " ", sz)
+	}
+	if err != nil {
+		log.Error(err)
+	}
+	err = binary.Decode(buffer, resp)
+	if err != nil {
+		log.Error(err)
+	}
+	return resp.Value
+
 }
 
-func readRegisterRequest(p *serial.Port, reg byte) {
+func readRegister(p *serial.Port, reg byte) uint32 {
 	req := &readRegRequest{Register: reg}
 	err := defaults.Set(req)
 	if err != nil {
@@ -175,9 +188,7 @@ func readRegisterRequest(p *serial.Port, reg byte) {
 	}
 
 	log.Debug("Send readRegisterRequest for reg ", reg)
-}
 
-func readRegisterResponse(p *serial.Port) uint32 {
 	resp := &readRegResponse{}
 	sz := binary.Size(resp)
 	buffer := make([]byte, sz)
