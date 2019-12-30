@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ab9f415b-31fe-426f-a2ef-4653ce6d94a1" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/dictionaries/io.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
     </list>
@@ -34,6 +33,7 @@
     <property name="node.js.path.for.package.tslint" value="project" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="settings.editor.selected.configurable" value="vcs.Git" />
   </component>
   <component name="RunManager">
     <configuration name="go build xm122level" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -68,33 +68,43 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="remove state machine" />
     <MESSAGE value="compact" />
-    <option name="LAST_COMMIT_MESSAGE" value="compact" />
+    <MESSAGE value="first refl" />
+    <MESSAGE value="x" />
+    <option name="LAST_COMMIT_MESSAGE" value="x" />
   </component>
   <component name="WindowStateProjectService">
     <state x="320" y="127" key="#GOROOT" timestamp="1577653196835">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
     <state x="320" y="127" key="#GOROOT/0.23.1440.877@0.23.1440.877" timestamp="1577653196835" />
-    <state x="303" y="64" key="CommitChangelistDialog2" timestamp="1577655747894">
+    <state x="303" y="64" key="CommitChangelistDialog2" timestamp="1577661876206">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state x="303" y="64" key="CommitChangelistDialog2/0.23.1440.877@0.23.1440.877" timestamp="1577655747894" />
-    <state width="1358" height="217" key="GridCell.Tab.0.bottom" timestamp="1577659977807">
+    <state x="303" y="64" key="CommitChangelistDialog2/0.23.1440.877@0.23.1440.877" timestamp="1577661876206" />
+    <state width="1358" height="286" key="GridCell.Tab.0.bottom" timestamp="1577712446663">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1577659977807" />
-    <state width="1358" height="217" key="GridCell.Tab.0.center" timestamp="1577659977806">
+    <state width="1358" height="286" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1577712446663" />
+    <state width="1358" height="286" key="GridCell.Tab.0.center" timestamp="1577712446662">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1577659977806" />
-    <state width="1358" height="217" key="GridCell.Tab.0.left" timestamp="1577659977806">
+    <state width="1358" height="286" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1577712446662" />
+    <state width="1358" height="286" key="GridCell.Tab.0.left" timestamp="1577712446662">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1577659977806" />
-    <state width="1358" height="217" key="GridCell.Tab.0.right" timestamp="1577659977807">
+    <state width="1358" height="286" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1577712446662" />
+    <state width="1358" height="286" key="GridCell.Tab.0.right" timestamp="1577712446662">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="217" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1577659977807" />
+    <state width="1358" height="286" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1577712446662" />
+    <state x="221" y="100" key="SettingsEditor" timestamp="1577664342385">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="221" y="100" key="SettingsEditor/0.23.1440.877@0.23.1440.877" timestamp="1577664342385" />
+    <state x="482" y="76" key="refactoring.ChangeSignatureDialog" timestamp="1577662762581">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="482" y="76" key="refactoring.ChangeSignatureDialog/0.23.1440.877@0.23.1440.877" timestamp="1577662762581" />
     <state x="385" y="223" key="search.everywhere.popup" timestamp="1577657434663">
       <screen x="0" y="23" width="1440" height="877" />
     </state>

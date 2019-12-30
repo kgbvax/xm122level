@@ -6,8 +6,14 @@ import (
 	"github.com/mikepb/go-serial"
 	log "github.com/sirupsen/logrus"
 	"github.com/vipally/binary"
+	"math"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
+
+var p *serial.Port
 
 const (
 	START_MARKER    byte = 0xCC
@@ -70,6 +76,8 @@ const (
 	DIST_LENGTH                 RegT = 0x82
 	DIST_DATA_SATURATED         RegT = 0xA0
 	DIST_MISSED_DATA            RegT = 0xA1
+	DistA2                      RegT = 0xA2
+	DistA3                      RegT = 0xA3
 	DistReflCount               RegT = 0xB0
 	DistRefl1Distance           RegT = 0xB1
 	DistRefl1Amplitude          RegT = 0xB2
@@ -109,63 +117,156 @@ func main() {
 		options := serial.RawOptions
 		options.BitRate = 115200
 		options.Mode = serial.MODE_READ_WRITE
-
-		p, err := options.Open(*portName)
+		var err error
+		p, err = options.Open(*portName)
 		if err != nil {
 			log.Panic(err)
 		} else {
 			log.Debug("opened port")
 		}
 
-		checkStatus(p)
+		c := make(chan os.Signal)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			hangup()
+			os.Exit(1)
+		}()
+
+		checkStatus(p, true)
 
 		maxBaud := readRegister(p, REG_MAX_BAUDRATE)
 		log.Info("MaxBaud ", maxBaud)
 
-		writeRegister(p, REG_POWER_MODE, 0)
-		checkStatus(p)
-
 		writeRegister(p, REG_MODE_SELECTION, MODE_DISTANCE_FIXED_PEAK)
-		checkStatus(p)
+		checkStatus(p, true)
+		log.Info("mode: ", readRegister(p, REG_MODE_SELECTION))
 
-		writeRegister(p, DIST_RANGE_START, 41)
-		checkStatus(p)
+		log.Debug("old run factor ", readRegister(p, DIST_RUN_FACTOR))
+		writeRegister(p, DIST_RUN_FACTOR, 950) //default 0,7
+		checkStatus(p, true)
 
+		log.Debug("old range start ", readRegister(p, DIST_RANGE_START))
+		writeRegister(p, DIST_RANGE_START, 150)
+		checkStatus(p, true)
+
+		log.Debug("old range length ", readRegister(p, DIST_RANGE_LENGTH))
 		writeRegister(p, DIST_RANGE_LENGTH, 1000) //mm
-		checkStatus(p)
+		checkStatus(p, true)
 
-		writeRegister(p, DIST_UPDATE_RATE, 2000) //mHz
-		checkStatus(p)
+		log.Debug("old sensor power mode ", readRegister(p, DIST_SENSOR_POWER_MODE))
+		writeRegister(p, DIST_SENSOR_POWER_MODE, 3)
+		checkStatus(p, true)
 
-		writeRegister(p, DIST_PROFILE_SELECTION, 0x01) //mHz
-		checkStatus(p)
+		log.Debug("old thr amplitude ", readRegister(p, DIST_THR_AMPLITUDE))
+		writeRegister(p, DIST_THR_AMPLITUDE, 200)
+		checkStatus(p, true)
 
-		writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_FLAG_ERR)
-		checkStatus(p)
+		log.Debug("old update rate ", readRegister(p, DIST_UPDATE_RATE))
+		writeRegister(p, DIST_UPDATE_RATE, 3000) //mHz
+		checkStatus(p, true)
 
-		writeRegister(p, REG_MAIN_CONTROL, MAIN_ACTIVATE_FLAG_ERR)
-		checkStatus(p)
+		log.Debug("old profile ", readRegister(p, DIST_PROFILE_SELECTION))
+		writeRegister(p, DIST_PROFILE_SELECTION, 1)
+		checkStatus(p, true)
+
+		log.Debug("enable streaming:_")
+		writeRegister(p, REG_STREAMING_CONTROL, 1)
+		/*
+			log.Debug("old power mode ",readRegister(p,REG_POWER_MODE))
+			writeRegister(p, REG_POWER_MODE, 0)
+			checkStatus(p, true)
+
+			log.Debug("old range start ",readRegister(p,DIST_RANGE_START))
+			writeRegister(p, DIST_RANGE_START, 150)
+			checkStatus(p, true)
+
+			log.Debug("old range length ",readRegister(p,DIST_RANGE_LENGTH))
+			writeRegister(p, DIST_RANGE_LENGTH, 1000) //mm
+			checkStatus(p, true)
+
+			log.Debug("old update rate ",readRegister(p,DIST_UPDATE_RATE))
+			writeRegister(p, DIST_UPDATE_RATE, 200) //mHz
+			checkStatus(p, true)
+
+			log.Debug("old repetition mode ",readRegister(p,DIST_REPETITION_MODE))
+			writeRegister(p, DIST_REPETITION_MODE, 2) //sensor controlled
+			checkStatus(p, true)
+
+			log.Debug("old profile ",readRegister(p,DIST_PROFILE_SELECTION))
+			writeRegister(p, DIST_PROFILE_SELECTION, 02)
+			checkStatus(p, true)
+
+			log.Debug("old hw acc samples ",readRegister(p,DIST_HW_ACC_AVERAGE_SAMPLES))
+			writeRegister(p,DIST_HW_ACC_AVERAGE_SAMPLES,10) //default 10
+			checkStatus(p, true)
+
+			log.Debug("old sensor power mode ",readRegister(p,DIST_SENSOR_POWER_MODE))
+			writeRegister(p,DIST_SENSOR_POWER_MODE,3)
+			checkStatus(p, true)
+
+			log.Debug("old downsampling ",readRegister(p,DIST_DOWNSAMPLING_FACTOR))
+			writeRegister(p,DIST_DOWNSAMPLING_FACTOR,1) //default 1 (none)
+			checkStatus(p, true)
+
+			log.Debug("old run factor ",readRegister(p,DIST_RUN_FACTOR))
+			writeRegister(p,DIST_RUN_FACTOR,700) //default 0,7
+			checkStatus(p, true)
+
+			log.Debug("old gain ",readRegister(p,DIST_GAIN))
+			writeRegister(p,DIST_GAIN,500)
+			checkStatus(p, true)
+
+			log.Debug("old thr amplitude ",readRegister(p,DIST_THR_AMPLITUDE))
+			writeRegister(p,DIST_THR_AMPLITUDE,500)
+			checkStatus(p, true)
+		*/
+
+		log.Debug("create&activate")
+		writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_ACTIVATE)
+		//checkStatus(p, true)
+
+		for {
+			readStreamingDistance(p)
+		}
 
 		for {
 			time.Sleep(1000 * time.Millisecond)
-			if checkStatus(p)&StatusDataReady != 0 {
+			if checkStatus(p, false)&StatusDataReady != 0 {
 				reflCount := readRegister(p, DistReflCount)
 				if reflCount > 4 {
 					reflCount = 4
 				}
+				dataLost := readRegister(p, DIST_MISSED_DATA)
+				start := readRegister(p, DIST_START)
+				length := readRegister(p, DIST_LENGTH)
+				saturated := readRegister(p, DIST_DATA_SATURATED)
+				a2 := readRegister(p, DistA2)
+				a3 := readRegister(p, DistA3)
+				log.Debugf("-- lost:%v start:%v length:%v saturated:%v", dataLost, start, length, saturated)
+				log.Debugf("a2: %v a3: %v", a2, a3)
 
-				log.Debug("refl count ", reflCount)
 				for i := 0; i < int(reflCount); i++ {
-					distance := readRegister(p, DistDistanceReg[i])
+					distance := readRegister(p, DistDistanceReg[i]) //* 1000.0f
 					amplitude := readRegister(p, DistAmplitudeReg[i])
-					dataLost := readRegister(p, DIST_MISSED_DATA)
-					log.Debugf("ref: %v dist:%v amp:%v  (lost: %v)", i, distance, amplitude, dataLost)
+
+					log.Debugf("ref: %v dist:%v amp:%v  ", i, distance, amplitude)
 				}
 			}
 
 		}
-		defer p.Close()
+		defer hangup()
+
 	}
+}
+
+func hangup() {
+	log.Info("Hangup...")
+	if p != nil {
+		writeRegister(p, REG_MAIN_CONTROL, 0) //stop services
+		p.Close()
+	}
+	p = nil
 }
 
 type readRegRequest struct {
@@ -215,12 +316,11 @@ func writeRegister(p *serial.Port, reg RegT, val uint32) uint32 {
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Trace(bbuf)
+		log.Debug(bbuf)
 	} else {
 		log.Panic(err)
 	}
-
-	log.Debug("set reg ", reg, " to ", val)
+	log.Debugf("set reg %#x to %#x (%v)", reg, val, val)
 
 	resp := &writeRegResponse{}
 	sz := binary.Size(resp)
@@ -238,6 +338,52 @@ func writeRegister(p *serial.Port, reg RegT, val uint32) uint32 {
 	}
 	return resp.Value
 
+}
+
+func readStreamingDistance(p *serial.Port) {
+	var buf1 [1]byte
+	var buf2 [2]byte
+
+	_, _ = p.Read(buf1[:]) //start
+	_, _ = p.Read(buf2[:]) //len
+	len := binary.LittleEndian.Uint16(buf2[:])
+	//log.Debugf("Stream msg len: %v",len)
+	_, _ = p.Read(buf1[:]) // type
+	var msgBuf []byte = make([]byte, len)
+	p.Read(msgBuf)
+	//log.Debugf("msg: %x",msgBuf)
+	decodeStreamingPayloadDistance(msgBuf)
+
+	_, _ = p.Read(buf1[:]) //end
+}
+
+func decodeStreamingPayloadDistance(buf []byte) {
+	offset := 1
+
+	resultInfoLength := int(binary.LittleEndian.Uint16(buf[offset : offset+2]))
+	offset += 2
+
+	//log.Debugf("RILen: %v",resultInfoLength)
+	//log.Debugf("ResultInfo: %x",buf[offset:offset+resultInfoLength])
+	offset += resultInfoLength
+	offset += 1 //skip over buffer marker
+	bufferLength := int(binary.LittleEndian.Uint16(buf[offset : offset+2]))
+	//log.Debugf("BufferLen: %v",bufferLength)
+	offset += 2
+	if bufferLength > 0 {
+		numItems := bufferLength / 6
+		//log.Debugf("items(%v)",numItems)
+		for i := 0; i < numItems; i++ {
+			distbits := binary.LittleEndian.Uint32(buf[offset : offset+4])
+			f1 := math.Float32frombits(distbits)
+			offset += 4
+			amp := binary.LittleEndian.Uint16(buf[offset : offset+2])
+			offset += 2
+
+			log.Debugf("f1: %v ax: %v", f1*100.0, amp)
+
+		}
+	}
 }
 
 func readRegister(p *serial.Port, reg RegT) uint32 {
@@ -285,33 +431,34 @@ const (
 	StatusServ           = 0x00000001
 )
 
-func checkStatus(p *serial.Port) uint32 {
+func checkStatus(p *serial.Port, printStatus bool) uint32 {
 	regValue := readRegister(p, REG_STATUS)
 	log.Trace(fmt.Sprintf("Status 0x%x", regValue))
-	if 0 != regValue&StatusErrActivating {
-		log.Trace("STATUS: Error activating the requested service or detector")
+	if printStatus {
+		if 0 != regValue&StatusErrActivating {
+			log.Info("STATUS: Error activating the requested service or detector")
+		}
+		if 0 != regValue&StatusErrCreating {
+			log.Info("STATUS: Error creating the requested service or detector.")
+		}
+		if 0 != regValue&StatusInvalidMode {
+			log.Info("STATUS: Invalid Mode.")
+		}
+		if 0 != regValue&StatusInvalidCommand {
+			log.Info("STATUS: Invalid command or parameter received..")
+		}
+		if 0 != regValue&StatusError {
+			log.Info("STATUS: An error occurred in the module.")
+		}
+		if 0 != regValue&StatusDataReady {
+			log.Info("STATUS: Data is ready to be read from the buffer")
+		}
+		if 0 != regValue&StatusServActivated {
+			log.Info("STATUS: Service or detector is activated.")
+		}
+		if 0 != regValue&StatusServ {
+			log.Info("STATUS: Service or detector is created.")
+		}
 	}
-	if 0 != regValue&StatusErrCreating {
-		log.Trace("STATUS: Error creating the requested service or detector.")
-	}
-	if 0 != regValue&StatusInvalidMode {
-		log.Trace("STATUS: Invalid Mode.")
-	}
-	if 0 != regValue&StatusInvalidCommand {
-		log.Trace("STATUS: Invalid command or parameter received..")
-	}
-	if 0 != regValue&StatusError {
-		log.Trace("STATUS: An error occurred in the module.")
-	}
-	if 0 != regValue&StatusDataReady {
-		log.Trace("STATUS: Data is ready to be read from the buffer")
-	}
-	if 0 != regValue&StatusServActivated {
-		log.Trace("STATUS: Service or detector is activated.")
-	}
-	if 0 != regValue&StatusServ {
-		log.Trace("STATUS: Service or detector is created.")
-	}
-
 	return regValue
 }
