@@ -2,6 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ab9f415b-31fe-426f-a2ef-4653ce6d94a1" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pushInflux.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/io.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/io.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
     </list>
@@ -10,9 +15,19 @@
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
   <component name="GOROOT" path="/usr/local/Cellar/go/1.13.5/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
   </component>
   <component name="ProjectId" id="1Vfnm28DrvyMh3fKmZf2S6DYpPK" />
   <component name="ProjectViewState">
@@ -21,11 +36,13 @@
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="GO_FMT" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="go.import.settings.migrated" value="true" />
+    <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
     <property name="last_opened_file_path" value="$USER_HOME$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
@@ -70,37 +87,49 @@
     <MESSAGE value="compact" />
     <MESSAGE value="first refl" />
     <MESSAGE value="x" />
-    <option name="LAST_COMMIT_MESSAGE" value="x" />
+    <MESSAGE value="streaming measurements" />
+    <option name="LAST_COMMIT_MESSAGE" value="streaming measurements" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
     <state x="320" y="127" key="#GOROOT" timestamp="1577653196835">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
     <state x="320" y="127" key="#GOROOT/0.23.1440.877@0.23.1440.877" timestamp="1577653196835" />
-    <state x="303" y="64" key="CommitChangelistDialog2" timestamp="1577661876206">
+    <state x="336" y="112" key="#Go_Modules_(vgo)" timestamp="1577735434888">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state x="303" y="64" key="CommitChangelistDialog2/0.23.1440.877@0.23.1440.877" timestamp="1577661876206" />
-    <state width="1358" height="286" key="GridCell.Tab.0.bottom" timestamp="1577712446663">
+    <state x="336" y="112" key="#Go_Modules_(vgo)/0.23.1440.877@0.23.1440.877" timestamp="1577735434888" />
+    <state x="303" y="64" key="CommitChangelistDialog2" timestamp="1577712549934">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="286" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1577712446663" />
-    <state width="1358" height="286" key="GridCell.Tab.0.center" timestamp="1577712446662">
+    <state x="303" y="64" key="CommitChangelistDialog2/0.23.1440.877@0.23.1440.877" timestamp="1577712549934" />
+    <state width="1358" height="286" key="GridCell.Tab.0.bottom" timestamp="1577735413544">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="286" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1577712446662" />
-    <state width="1358" height="286" key="GridCell.Tab.0.left" timestamp="1577712446662">
+    <state width="1358" height="286" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1577735413544" />
+    <state width="1358" height="286" key="GridCell.Tab.0.center" timestamp="1577735413543">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="286" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1577712446662" />
-    <state width="1358" height="286" key="GridCell.Tab.0.right" timestamp="1577712446662">
+    <state width="1358" height="286" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1577735413543" />
+    <state width="1358" height="286" key="GridCell.Tab.0.left" timestamp="1577735413543">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1358" height="286" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1577712446662" />
+    <state width="1358" height="286" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1577735413543" />
+    <state width="1358" height="286" key="GridCell.Tab.0.right" timestamp="1577735413544">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state width="1358" height="286" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1577735413544" />
     <state x="221" y="100" key="SettingsEditor" timestamp="1577664342385">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
     <state x="221" y="100" key="SettingsEditor/0.23.1440.877@0.23.1440.877" timestamp="1577664342385" />
+    <state x="348" y="274" key="Vcs.Push.Dialog.v2" timestamp="1577712560882">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="348" y="274" key="Vcs.Push.Dialog.v2/0.23.1440.877@0.23.1440.877" timestamp="1577712560882" />
     <state x="482" y="76" key="refactoring.ChangeSignatureDialog" timestamp="1577662762581">
       <screen x="0" y="23" width="1440" height="877" />
     </state>

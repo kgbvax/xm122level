@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 var p *serial.Port
@@ -133,6 +132,10 @@ func main() {
 			os.Exit(1)
 		}()
 
+		defer hangup()
+		token := os.Getenv("INFLUXDB_TOKEN")
+		influxConnect("http://88.198.138.89:8086", token)
+
 		checkStatus(p, true)
 
 		maxBaud := readRegister(p, REG_MAX_BAUDRATE)
@@ -229,33 +232,6 @@ func main() {
 		for {
 			readStreamingDistance(p)
 		}
-
-		for {
-			time.Sleep(1000 * time.Millisecond)
-			if checkStatus(p, false)&StatusDataReady != 0 {
-				reflCount := readRegister(p, DistReflCount)
-				if reflCount > 4 {
-					reflCount = 4
-				}
-				dataLost := readRegister(p, DIST_MISSED_DATA)
-				start := readRegister(p, DIST_START)
-				length := readRegister(p, DIST_LENGTH)
-				saturated := readRegister(p, DIST_DATA_SATURATED)
-				a2 := readRegister(p, DistA2)
-				a3 := readRegister(p, DistA3)
-				log.Debugf("-- lost:%v start:%v length:%v saturated:%v", dataLost, start, length, saturated)
-				log.Debugf("a2: %v a3: %v", a2, a3)
-
-				for i := 0; i < int(reflCount); i++ {
-					distance := readRegister(p, DistDistanceReg[i]) //* 1000.0f
-					amplitude := readRegister(p, DistAmplitudeReg[i])
-
-					log.Debugf("ref: %v dist:%v amp:%v  ", i, distance, amplitude)
-				}
-			}
-
-		}
-		defer hangup()
 
 	}
 }

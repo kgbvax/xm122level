@@ -2,6 +2,7 @@
   <dictionary name="io">
     <words>
       <w>bbuf</w>
+      <w>influxdb</w>
     </words>
   </dictionary>
 </component>
