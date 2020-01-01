@@ -74,6 +74,7 @@ func registerHaDiscovery(cl MQTT.Client, sensName string, configRoot string, roo
 	newDisco.StateTopic = rootTopic + "/" + saneName + "/state"
 	configTopic := configRoot + "/" + saneName + "/config"
 	newDisco.ExpireAfter = 5 * 60 //seconds
+	newDisco.UniqueId = "Prapp" + saneName
 
 	discoJson, err := json.Marshal(newDisco)
 	if err != nil {
