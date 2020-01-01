@@ -72,7 +72,7 @@ func registerHaDiscovery(cl MQTT.Client, sensName string, configRoot string, roo
 	saneName := strings.Join(strings.Fields(sensName), "_")
 	newDisco.Name = saneName
 	newDisco.StateTopic = rootTopic + "/" + saneName + "/state"
-	configTopic := configRoot + "/" + saneName + "/config"
+	configTopic := configRoot + "/sensor/" + saneName + "/config"
 	newDisco.ExpireAfter = 5 * 60 //seconds
 	newDisco.UniqueId = "Prapp" + saneName
 
