@@ -37,13 +37,14 @@ func connectMQTT(host string, username string, password string) MQTT.Client {
 	opts.SetDefaultPublishHandler(f)
 	opts.SetAutoReconnect(true)
 	opts.SetPassword(password)
+	log.Debug("MQTT username: ", username)
 	opts.SetUsername(username)
 	opts.SetKeepAlive(120 * time.Second)
 	opts.SetPingTimeout(20 * time.Second)
 	opts.SetConnectionLostHandler(onLost)
 	opts.SetOrderMatters(false)
 	opts.SetOnConnectHandler(onConnect)
-	opts.SetMaxReconnectInterval(5 * 60 * time.Second)
+	opts.SetMaxReconnectInterval(30 * time.Second)
 
 	//create and start a client using the above ClientOptions
 	c := MQTT.NewClient(opts)
