@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/creasty/defaults"
+	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/mikepb/go-serial"
 	log "github.com/sirupsen/logrus"
 	"github.com/vipally/binary"
@@ -91,6 +92,9 @@ const (
 var DistDistanceReg = [4]RegT{DistRefl1Distance, DistRefl2Distance, DistRefl3Distance, DistRefl4Distance}
 var DistAmplitudeReg = [4]RegT{DistRefl1Amplitude, DistRefl2Amplitude, DistRefl3Amplitude, DistRefl5Amplitude}
 
+var distTopic = ""
+var axTopic = ""
+
 func findPort() *string {
 	ports, err := serial.ListPorts()
 
@@ -133,8 +137,10 @@ func main() {
 		}()
 
 		defer hangup()
-		token := os.Getenv("INFLUXDB_TOKEN")
-		influxConnect("http://88.198.138.89:8086", token)
+		/* brokerAddr := os.Getenv("MQTT_BROKER")
+		brokerUser := os.Getenv("MQTT_USER")
+		brokerPw := os.Getenv("MQTT_PW")
+		mqttConn:=connectMQTT(brokerAddr,brokerUser,brokerPw) */
 
 		checkStatus(p, true)
 
@@ -162,11 +168,15 @@ func main() {
 		checkStatus(p, true)
 
 		log.Debug("old thr amplitude ", readRegister(p, DIST_THR_AMPLITUDE))
-		writeRegister(p, DIST_THR_AMPLITUDE, 200)
+		writeRegister(p, DIST_THR_AMPLITUDE, 150)
 		checkStatus(p, true)
 
 		log.Debug("old update rate ", readRegister(p, DIST_UPDATE_RATE))
 		writeRegister(p, DIST_UPDATE_RATE, 3000) //mHz
+		checkStatus(p, true)
+
+		log.Debug("old gain  ", readRegister(p, DIST_GAIN))
+		writeRegister(p, DIST_GAIN, 600)
 		checkStatus(p, true)
 
 		log.Debug("old profile ", readRegister(p, DIST_PROFILE_SELECTION))
@@ -175,62 +185,13 @@ func main() {
 
 		log.Debug("enable streaming:_")
 		writeRegister(p, REG_STREAMING_CONTROL, 1)
-		/*
-			log.Debug("old power mode ",readRegister(p,REG_POWER_MODE))
-			writeRegister(p, REG_POWER_MODE, 0)
-			checkStatus(p, true)
-
-			log.Debug("old range start ",readRegister(p,DIST_RANGE_START))
-			writeRegister(p, DIST_RANGE_START, 150)
-			checkStatus(p, true)
-
-			log.Debug("old range length ",readRegister(p,DIST_RANGE_LENGTH))
-			writeRegister(p, DIST_RANGE_LENGTH, 1000) //mm
-			checkStatus(p, true)
-
-			log.Debug("old update rate ",readRegister(p,DIST_UPDATE_RATE))
-			writeRegister(p, DIST_UPDATE_RATE, 200) //mHz
-			checkStatus(p, true)
-
-			log.Debug("old repetition mode ",readRegister(p,DIST_REPETITION_MODE))
-			writeRegister(p, DIST_REPETITION_MODE, 2) //sensor controlled
-			checkStatus(p, true)
-
-			log.Debug("old profile ",readRegister(p,DIST_PROFILE_SELECTION))
-			writeRegister(p, DIST_PROFILE_SELECTION, 02)
-			checkStatus(p, true)
-
-			log.Debug("old hw acc samples ",readRegister(p,DIST_HW_ACC_AVERAGE_SAMPLES))
-			writeRegister(p,DIST_HW_ACC_AVERAGE_SAMPLES,10) //default 10
-			checkStatus(p, true)
-
-			log.Debug("old sensor power mode ",readRegister(p,DIST_SENSOR_POWER_MODE))
-			writeRegister(p,DIST_SENSOR_POWER_MODE,3)
-			checkStatus(p, true)
-
-			log.Debug("old downsampling ",readRegister(p,DIST_DOWNSAMPLING_FACTOR))
-			writeRegister(p,DIST_DOWNSAMPLING_FACTOR,1) //default 1 (none)
-			checkStatus(p, true)
-
-			log.Debug("old run factor ",readRegister(p,DIST_RUN_FACTOR))
-			writeRegister(p,DIST_RUN_FACTOR,700) //default 0,7
-			checkStatus(p, true)
-
-			log.Debug("old gain ",readRegister(p,DIST_GAIN))
-			writeRegister(p,DIST_GAIN,500)
-			checkStatus(p, true)
-
-			log.Debug("old thr amplitude ",readRegister(p,DIST_THR_AMPLITUDE))
-			writeRegister(p,DIST_THR_AMPLITUDE,500)
-			checkStatus(p, true)
-		*/
 
 		log.Debug("create&activate")
 		writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_ACTIVATE)
 		//checkStatus(p, true)
 
 		for {
-			readStreamingDistance(p)
+			publishDistanceStream(p, nil /*mqttConn*/)
 		}
 
 	}
@@ -316,30 +277,51 @@ func writeRegister(p *serial.Port, reg RegT, val uint32) uint32 {
 
 }
 
-func readStreamingDistance(p *serial.Port) {
+func publishDistanceStream(p *serial.Port, conn mqtt.Client) {
 	var buf1 [1]byte
 	var buf2 [2]byte
 
 	_, _ = p.Read(buf1[:]) //start
+
 	_, _ = p.Read(buf2[:]) //len
 	len := binary.LittleEndian.Uint16(buf2[:])
 	//log.Debugf("Stream msg len: %v",len)
+
 	_, _ = p.Read(buf1[:]) // type
 	var msgBuf []byte = make([]byte, len)
-	p.Read(msgBuf)
-	//log.Debugf("msg: %x",msgBuf)
-	decodeStreamingPayloadDistance(msgBuf)
 
+	p.Read(msgBuf)
+
+	entries := decodeStreamingPayloadDistance(msgBuf)
+	var maxAx uint16 = 0
+	var maxAxVal float32
+
+	for _, entry := range entries {
+		if maxAx < entry.ax {
+			maxAx = entry.ax
+			maxAxVal = entry.dist * 1000.0
+		}
+	}
+	log.Debugf("##VAL %f", maxAxVal)
+
+	for _, _ = range entries {
+		//_ = PublishLevel(conn, entry.dist, entry.ax)
+	}
 	_, _ = p.Read(buf1[:]) //end
 }
 
-func decodeStreamingPayloadDistance(buf []byte) {
+type distEntry struct {
+	dist float32 //mm
+	ax   uint16  //assumed to be amplitude, no documentation available
+}
+
+func decodeStreamingPayloadDistance(buf []byte) []distEntry {
 	offset := 1
+	var entries []distEntry = nil
 
 	resultInfoLength := int(binary.LittleEndian.Uint16(buf[offset : offset+2]))
 	offset += 2
 
-	//log.Debugf("RILen: %v",resultInfoLength)
 	//log.Debugf("ResultInfo: %x",buf[offset:offset+resultInfoLength])
 	offset += resultInfoLength
 	offset += 1 //skip over buffer marker
@@ -348,18 +330,20 @@ func decodeStreamingPayloadDistance(buf []byte) {
 	offset += 2
 	if bufferLength > 0 {
 		numItems := bufferLength / 6
+		entries = make([]distEntry, numItems)
 		//log.Debugf("items(%v)",numItems)
 		for i := 0; i < numItems; i++ {
 			distbits := binary.LittleEndian.Uint32(buf[offset : offset+4])
 			f1 := math.Float32frombits(distbits)
 			offset += 4
-			amp := binary.LittleEndian.Uint16(buf[offset : offset+2])
+			ax := binary.LittleEndian.Uint16(buf[offset : offset+2])
 			offset += 2
-
-			log.Debugf("f1: %v ax: %v", f1*100.0, amp)
-
+			log.Debugf("f1: %v ax: %v", f1*100.0, ax)
+			entries[i].dist = f1
+			entries[i].ax = ax
 		}
 	}
+	return entries
 }
 
 func readRegister(p *serial.Port, reg RegT) uint32 {
