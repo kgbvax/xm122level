@@ -11,7 +11,6 @@ import (
 	"math"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 )
 
@@ -133,7 +132,7 @@ func main() {
 	mqttConn := connectMQTT(*mqttHost, *mqttUsername, *mqttPassword)
 	sanName := sanitizeParamName(*sensorName)
 
-	registerHaDiscovery(mqttConn, sensorName, haDiscoveryTopic, mqttRootTopic)
+	stateTopic := registerHaDiscovery(mqttConn, sanName, *haDiscoveryTopic, *mqttRootTopic).StateTopic
 
 	checkStatus(p, true)
 
@@ -184,7 +183,7 @@ func main() {
 	//checkStatus(p, true)
 
 	for {
-		publishDistanceStream(p, mqttConn)
+		publishDistanceStream(p, mqttConn, stateTopic)
 	}
 
 }
