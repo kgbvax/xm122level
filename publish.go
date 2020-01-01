@@ -3,13 +3,24 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
+
+// Home Assitant MQTT Discovery support
+type MqttDiscoveryMsg struct {
+	Name              string `json:"name"`
+	StateTopic        string `json:"state_topic"`
+	UnitOfMeasurement string `json:"unit_of_measurement"`
+	UniqueId          string `json:"unique_id"`
+	ExpireAfter       int    `json:"expire_after"`
+	Qos               int    `json:"qos"`
+	//SwVersion	    string `json:"sw_version"`
+}
 
 //define a function for the default message handler
 var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
@@ -49,19 +60,29 @@ type OpenSenseMapJSON struct {
 	Value  string `json:"value"`
 }
 
-func PublishLevel(cl MQTT.Client, val float32, ax uint16) error {
-	data := [2]OpenSenseMapJSON{}
-	data[0].Value = fmt.Sprintf("%f", val)
-	data[0].Sensor = "5e0b58b9ad788c001af4e848"
-	data[1].Value = string(ax)
-	data[1].Sensor = ""
+//Register sensor with Home Assistant via MQTT
+//requires HA MQTT Discovey to be enabled
+func registerHaDiscovery(cl MQTT.Client, sensName string, configRoot string, rootTopic string) *MqttDiscoveryMsg {
+	var newDisco = &MqttDiscoveryMsg{}
+	newDisco.Name = "Gräfte"
+	newDisco.UnitOfMeasurement = "mm"
+	newDisco.Qos = 2
 
-	topic := "vortlager-damm-6"
-	payload, err := json.Marshal(data)
+	saneName := strings.Join(strings.Fields(sensName), "_")
+	newDisco.StateTopic = rootTopic + "/" + saneName + "/state"
+	configTopic := configRoot + "/" + saneName + "/config"
+	newDisco.ExpireAfter = 5 * 60 //seconds
+
+	discoJson, err := json.Marshal(newDisco)
 	if err != nil {
 		log.Panic(err)
 	}
+	pub(cl, configTopic, string(discoJson))
 
+	return newDisco
+}
+
+func pub(cl MQTT.Client, topic string, payload string) error {
 	log.Debug("MQTT: ", topic, " <- ", payload)
 	if token := cl.Publish(topic, 1, false, payload); token.Wait() && token.Error() != nil {
 		log.Error("failed to publish message to ", topic, " error: ", token.Error())
@@ -92,11 +113,6 @@ func onLost(client MQTT.Client, err error) {
 	log.Warn("MQTT connection lost: ", err)
 }
 
-func pub(cl MQTT.Client, topic string, payload string) error {
-	log.Debug("MQTT: ", topic, " <- ", payload)
-	if token := cl.Publish(topic, 1, false, payload); token.Wait() && token.Error() != nil {
-		log.Error("failed to publish message to ", topic, " error: ", token.Error())
-		return token.Error()
-	}
-	return nil
+func sanitizeParamName(paramName string) string {
+	return strings.Join(strings.Fields(paramName), "_")
 }

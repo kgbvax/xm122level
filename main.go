@@ -7,9 +7,11 @@ import (
 	"github.com/mikepb/go-serial"
 	log "github.com/sirupsen/logrus"
 	"github.com/vipally/binary"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"math"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -89,112 +91,102 @@ const (
 	DistRefl5Amplitude          RegT = 0xB8
 )
 
-var DistDistanceReg = [4]RegT{DistRefl1Distance, DistRefl2Distance, DistRefl3Distance, DistRefl4Distance}
-var DistAmplitudeReg = [4]RegT{DistRefl1Amplitude, DistRefl2Amplitude, DistRefl3Amplitude, DistRefl5Amplitude}
-
-var distTopic = ""
-var axTopic = ""
-
-func findPort() *string {
-	ports, err := serial.ListPorts()
-
-	if err != nil {
-		log.Panic(err)
-	}
-
-	for _, info := range ports {
-		if info.Description() == "XB122" {
-			log.Info("Found XB122 at " + info.Name())
-			name := info.Name()
-			return &name
-		}
-	}
-	return nil
-}
+var app = kingpin.New("xm122level", "Reads distance from Acconeer XM122 and publishes to MQTT (Home Assistant)")
+var serialPort = app.Flag("port", "serial port").Short('p').Required().ExistingFile()
+var mqttHost = app.Flag("broker", "address of MQTT broker to connect to, e.g. tcp://mqtt.eclipse.org:1883. Env: BROKER").Short('b').Envar("BROKER").String()
+var mqttUsername = app.Flag("mqttUser", "username for mqtt broker. Env: BROKER_USER").Envar("BROKER_USER").String()
+var mqttPassword = app.Flag("mqttPassword", "password for mqtt broker user. Env: BROKER_PW").Envar("BROKER_PW").String()
+var haDiscoveryTopic = app.Flag("haDiscoTopic", "Home Assistant MQTT discovery topic, defaults to 'homeassistant'").Envar("HA_DISCO_TOPIC").Default("homeassistant").String()
+var mqttRootTopic = app.Flag("rooTopic", "root topic, defaults to /xm122").Envar("WOLF_MQTT_ROOT_TOPIC").Default("xm122").String()
+var sensorName = app.Flag("sensorName", "Sensor Name (for Home Assistant)").String()
 
 func main() {
 	log.SetLevel(log.DebugLevel)
 
-	portName := findPort()
-	if portName != nil {
-		options := serial.RawOptions
-		options.BitRate = 115200
-		options.Mode = serial.MODE_READ_WRITE
-		var err error
-		p, err = options.Open(*portName)
-		if err != nil {
-			log.Panic(err)
-		} else {
-			log.Debug("opened port")
-		}
+	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("vax@kgbvax.net")
+	kingpin.CommandLine.Help = "XM122Level see github.com/kgbvax/xm122level for documentation."
+	kingpin.CommandLine.HelpFlag.Short('h')
+	kingpin.MustParse(app.Parse(os.Args[1:]))
 
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			hangup()
-			os.Exit(1)
-		}()
-
-		defer hangup()
-		/* brokerAddr := os.Getenv("MQTT_BROKER")
-		brokerUser := os.Getenv("MQTT_USER")
-		brokerPw := os.Getenv("MQTT_PW")
-		mqttConn:=connectMQTT(brokerAddr,brokerUser,brokerPw) */
-
-		checkStatus(p, true)
-
-		maxBaud := readRegister(p, REG_MAX_BAUDRATE)
-		log.Info("MaxBaud ", maxBaud)
-
-		writeRegister(p, REG_MODE_SELECTION, MODE_DISTANCE_FIXED_PEAK)
-		checkStatus(p, true)
-		log.Info("mode: ", readRegister(p, REG_MODE_SELECTION))
-
-		log.Debug("old run factor ", readRegister(p, DIST_RUN_FACTOR))
-		writeRegister(p, DIST_RUN_FACTOR, 950) //default 0,7
-		checkStatus(p, true)
-
-		log.Debug("old range start ", readRegister(p, DIST_RANGE_START))
-		writeRegister(p, DIST_RANGE_START, 150)
-		checkStatus(p, true)
-
-		log.Debug("old range length ", readRegister(p, DIST_RANGE_LENGTH))
-		writeRegister(p, DIST_RANGE_LENGTH, 1000) //mm
-		checkStatus(p, true)
-
-		log.Debug("old sensor power mode ", readRegister(p, DIST_SENSOR_POWER_MODE))
-		writeRegister(p, DIST_SENSOR_POWER_MODE, 3)
-		checkStatus(p, true)
-
-		log.Debug("old thr amplitude ", readRegister(p, DIST_THR_AMPLITUDE))
-		writeRegister(p, DIST_THR_AMPLITUDE, 150)
-		checkStatus(p, true)
-
-		log.Debug("old update rate ", readRegister(p, DIST_UPDATE_RATE))
-		writeRegister(p, DIST_UPDATE_RATE, 3000) //mHz
-		checkStatus(p, true)
-
-		log.Debug("old gain  ", readRegister(p, DIST_GAIN))
-		writeRegister(p, DIST_GAIN, 600)
-		checkStatus(p, true)
-
-		log.Debug("old profile ", readRegister(p, DIST_PROFILE_SELECTION))
-		writeRegister(p, DIST_PROFILE_SELECTION, 1)
-		checkStatus(p, true)
-
-		log.Debug("enable streaming:_")
-		writeRegister(p, REG_STREAMING_CONTROL, 1)
-
-		log.Debug("create&activate")
-		writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_ACTIVATE)
-		//checkStatus(p, true)
-
-		for {
-			publishDistanceStream(p, nil /*mqttConn*/)
-		}
-
+	options := serial.RawOptions
+	options.BitRate = 115200
+	options.Mode = serial.MODE_READ_WRITE
+	var err error
+	p, err = options.Open(*serialPort)
+	if err != nil {
+		log.Panic(err)
+	} else {
+		log.Debug("opened port")
 	}
+
+	hangUpChan := make(chan os.Signal)
+	signal.Notify(hangUpChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-hangUpChan
+		hangup()
+		os.Exit(1)
+	}()
+
+	defer hangup()
+
+	//connect to MQTT and issue HA discovery
+	mqttConn := connectMQTT(*mqttHost, *mqttUsername, *mqttPassword)
+	sanName := sanitizeParamName(*sensorName)
+
+	registerHaDiscovery(mqttConn, sensorName, haDiscoveryTopic, mqttRootTopic)
+
+	checkStatus(p, true)
+
+	maxBaud := readRegister(p, REG_MAX_BAUDRATE)
+	log.Info("MaxBaud ", maxBaud)
+
+	writeRegister(p, REG_MODE_SELECTION, MODE_DISTANCE_FIXED_PEAK)
+	checkStatus(p, true)
+	log.Info("mode: ", readRegister(p, REG_MODE_SELECTION))
+
+	log.Debug("old run factor ", readRegister(p, DIST_RUN_FACTOR))
+	writeRegister(p, DIST_RUN_FACTOR, 950) //default 0,7
+	checkStatus(p, true)
+
+	log.Debug("old range start ", readRegister(p, DIST_RANGE_START))
+	writeRegister(p, DIST_RANGE_START, 150)
+	checkStatus(p, true)
+
+	log.Debug("old range length ", readRegister(p, DIST_RANGE_LENGTH))
+	writeRegister(p, DIST_RANGE_LENGTH, 1000) //mm
+	checkStatus(p, true)
+
+	log.Debug("old sensor power mode ", readRegister(p, DIST_SENSOR_POWER_MODE))
+	writeRegister(p, DIST_SENSOR_POWER_MODE, 3)
+	checkStatus(p, true)
+
+	log.Debug("old thr amplitude ", readRegister(p, DIST_THR_AMPLITUDE))
+	writeRegister(p, DIST_THR_AMPLITUDE, 150)
+	checkStatus(p, true)
+
+	log.Debug("old update rate ", readRegister(p, DIST_UPDATE_RATE))
+	writeRegister(p, DIST_UPDATE_RATE, 2000) //mHz
+	checkStatus(p, true)
+
+	log.Debug("old gain  ", readRegister(p, DIST_GAIN))
+	writeRegister(p, DIST_GAIN, 600)
+	checkStatus(p, true)
+
+	log.Debug("old profile ", readRegister(p, DIST_PROFILE_SELECTION))
+	writeRegister(p, DIST_PROFILE_SELECTION, 1)
+	checkStatus(p, true)
+
+	log.Debug("enable streaming:_")
+	writeRegister(p, REG_STREAMING_CONTROL, 1)
+
+	log.Debug("create&activate")
+	writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_ACTIVATE)
+	//checkStatus(p, true)
+
+	for {
+		publishDistanceStream(p, mqttConn)
+	}
+
 }
 
 func hangup() {
@@ -277,7 +269,7 @@ func writeRegister(p *serial.Port, reg RegT, val uint32) uint32 {
 
 }
 
-func publishDistanceStream(p *serial.Port, conn mqtt.Client) {
+func publishDistanceStream(p *serial.Port, cl mqtt.Client, topic string) {
 	var buf1 [1]byte
 	var buf2 [2]byte
 
@@ -293,20 +285,20 @@ func publishDistanceStream(p *serial.Port, conn mqtt.Client) {
 	p.Read(msgBuf)
 
 	entries := decodeStreamingPayloadDistance(msgBuf)
+
+	//pick value with max(ax)
 	var maxAx uint16 = 0
 	var maxAxVal float32
-
 	for _, entry := range entries {
 		if maxAx < entry.ax {
 			maxAx = entry.ax
 			maxAxVal = entry.dist * 1000.0
 		}
 	}
-	log.Debugf("##VAL %f", maxAxVal)
+	log.Debugf("#VAL %f", maxAxVal)
 
-	for _, _ = range entries {
-		//_ = PublishLevel(conn, entry.dist, entry.ax)
-	}
+	pub(cl, topic, fmt.Sprintf("%f", maxAxVal))
+
 	_, _ = p.Read(buf1[:]) //end
 }
 
