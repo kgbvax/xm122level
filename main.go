@@ -101,8 +101,6 @@ var mqttRootTopic = app.Flag("rooTopic", "root topic, defaults to /xm122").Envar
 var sensorName = app.Flag("sensorName", "Sensor Name (for Home Assistant)").Required().Short('s').String()
 
 func main() {
-	log.SetLevel(log.DebugLevel)
-
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("vax@kgbvax.net")
 	kingpin.CommandLine.Help = "XM122Level see github.com/kgbvax/xm122level for documentation."
 	kingpin.CommandLine.HelpFlag.Short('h')
