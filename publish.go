@@ -49,7 +49,7 @@ func connectMQTT(host string, username string, password string) MQTT.Client {
 	//create and start a client using the above ClientOptions
 	c := MQTT.NewClient(opts)
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		log.Panic("failed to connect to MQTT Broker, bailing out ", token.Error())
+		log.Panic("failed to connect to MQTT Broker, bailing out: ", token.Error())
 		os.Exit(-1)
 	}
 
@@ -65,11 +65,12 @@ type OpenSenseMapJSON struct {
 //requires HA MQTT Discovey to be enabled
 func registerHaDiscovery(cl MQTT.Client, sensName string, configRoot string, rootTopic string) *MqttDiscoveryMsg {
 	var newDisco = &MqttDiscoveryMsg{}
-	newDisco.Name = "Gräfte"
+
 	newDisco.UnitOfMeasurement = "mm"
 	newDisco.Qos = 2
 
 	saneName := strings.Join(strings.Fields(sensName), "_")
+	newDisco.Name = saneName
 	newDisco.StateTopic = rootTopic + "/" + saneName + "/state"
 	configTopic := configRoot + "/" + saneName + "/config"
 	newDisco.ExpireAfter = 5 * 60 //seconds
