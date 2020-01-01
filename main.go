@@ -91,6 +91,7 @@ const (
 )
 
 var app = kingpin.New("xm122level", "Reads distance from Acconeer XM122 and publishes to MQTT (Home Assistant)")
+var debug = app.Flag("debug", "Enable debug mode. Env: DEBUG").Envar("DEBUG").Short('d').Bool()
 var serialPort = app.Flag("port", "serial port").Short('p').Required().ExistingFile()
 var mqttHost = app.Flag("broker", "address of MQTT broker to connect to, e.g. tcp://mqtt.eclipse.org:1883. Env: BROKER").Short('b').Envar("BROKER").String()
 var mqttUsername = app.Flag("mqttUser", "username for mqtt broker Env: BROKER_USER").Envar("BROKER_USER").String()
@@ -106,6 +107,11 @@ func main() {
 	kingpin.CommandLine.Help = "XM122Level see github.com/kgbvax/xm122level for documentation."
 	kingpin.CommandLine.HelpFlag.Short('h')
 	kingpin.MustParse(app.Parse(os.Args[1:]))
+
+	if *debug == true {
+		log.SetLevel(log.DebugLevel)
+		log.SetReportCaller(true)
+	}
 
 	options := serial.RawOptions
 	options.BitRate = 115200
