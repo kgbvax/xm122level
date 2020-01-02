@@ -99,7 +99,7 @@ var mqttPassword = app.Flag("mqttPassword", "password for mqtt broker user. Env:
 var haDiscoveryTopic = app.Flag("haDiscoTopic", "Home Assistant MQTT discovery topic, defaults to 'homeassistant'").Envar("HA_DISCO_TOPIC").Default("homeassistant").String()
 var mqttRootTopic = app.Flag("rooTopic", "root topic, defaults to /xm122").Envar("WOLF_MQTT_ROOT_TOPIC").Default("xm122").String()
 var sensorName = app.Flag("sensorName", "Sensor Name (for Home Assistant)").Required().Short('s').String()
-var updateRate = app.Flag("rate", "Update frequency in MilliHertz (1/1000) , defaults to 500").Default("500").Short('r').Uint16()
+var updateRate = app.Flag("rate", "Update frequency in MilliHertz (1/1000) , defaults to 500").Default("500").Short('r').Uint32()
 
 func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("vax@kgbvax.net")
