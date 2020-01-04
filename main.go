@@ -100,6 +100,7 @@ var haDiscoveryTopic = app.Flag("haDiscoTopic", "Home Assistant MQTT discovery t
 var mqttRootTopic = app.Flag("rooTopic", "root topic, defaults to /xm122").Envar("WOLF_MQTT_ROOT_TOPIC").Default("xm122").String()
 var sensorName = app.Flag("sensorName", "Sensor Name (for Home Assistant)").Required().Short('s').String()
 var updateRate = app.Flag("rate", "Update frequency in MilliHertz (1/1000) , defaults to 500").Default("500").Short('r').Uint32()
+var levelOffset = app.Flag("offset", "Sensor level offset, subtracted from raw reading (in mm)").Default("0").Short('o').Uint16() //420 for my brick
 
 func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("vax@kgbvax.net")
@@ -173,7 +174,7 @@ func main() {
 	checkStatus(p, true)
 
 	log.Debug("old gain  ", readRegister(p, DIST_GAIN))
-	writeRegister(p, DIST_GAIN, 600)
+	writeRegister(p, DIST_GAIN, 300)
 	checkStatus(p, true)
 
 	log.Debug("old profile ", readRegister(p, DIST_PROFILE_SELECTION))
@@ -300,6 +301,8 @@ func publishDistanceStream(p *serial.Port, cl mqtt.Client, topic string) {
 		}
 	}
 	log.Debugf("#VAL %f", maxAxVal)
+
+	maxAxVal = maxAxVal - float32(*levelOffset)
 
 	pub(cl, topic, fmt.Sprintf("%f", maxAxVal))
 
