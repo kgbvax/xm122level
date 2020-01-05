@@ -195,7 +195,7 @@ func main() {
 	log.Info("Measurement f[Hz] ", hz)
 
 	var periodLength float64 = 1.0 / hz
-	log.Info("period length [sec]", periodLength)
+	log.Info("period length [sec] ", periodLength)
 	numAvgValues := uint32(math.Round(float64(*averageSec) / periodLength))
 
 	log.Info("Measurements in avg value: ", numAvgValues)
