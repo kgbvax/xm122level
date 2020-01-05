@@ -97,22 +97,22 @@ var serialPort = app.Flag("port", "serial port device name").Short('p').Required
 var mqttHost = app.Flag("broker", "address of MQTT broker to connect to, e.g. tcp://mqtt.eclipse.org:1883. Env: BROKER").Short('b').Required().Envar("BROKER").String()
 var mqttUsername = app.Flag("mqttUser", "username for mqtt broker Env: BROKER_USER").Envar("BROKER_USER").Required().String()
 var mqttPassword = app.Flag("mqttPassword", "password for mqtt broker user. Env: BROKER_PW").Envar("BROKER_PW").Required().String()
-var stateTopic = app.Flag("stateTopic", "Home Assistant MQTT state topic").Envar("HA_STATE_TOPIC").Default("xm122level/state").String()
-var rawTopic = app.Flag("rawTopic", "if set, MQTT topic that recieves all (unprocessed) measurements ").String()
+var stateTopic = app.Flag("stateTopic", "MQTT state topic").Envar("HA_STATE_TOPIC").Default("xm122level/state").String()
+var rawTopic = app.Flag("rawTopic", "if set, MQTT topic that receives all (unprocessed) measurements ").String()
 var rangeStart = app.Flag("rangeStart", "Start (min) of measurement range in mm").Default("300").Uint32()
 var rangeEnd = app.Flag("rangeEnd", "End (max) of measurement range in mm").Default("1000").Uint32()
 
-var updateRate = app.Flag("rate", "Update frequency in 1/1000 Hertz").Default("500").Short('r').Uint32()
+var updateRate = app.Flag("rate", "Measurement frequency in 1/1000 Hertz").Default("500").Short('r').Uint32()
 var levelOffset = app.Flag("offset", "Sensor level offset, subtracted from raw reading (in mm)").Default("0").Short('o').Uint16() //420 for my brick
 
-var averageSec = app.Flag("averageSec", "average values over <Num> seconds").Default("15").Uint32()
+var averageSec = app.Flag("reportSec", "report a moving average over <value> seconds every <value> seconds").Default("60").Uint32()
 
 //var movingAverageNum = app.Flag("average","calculate moving average over <num> measurements").Default("5").
 //var reportEvery = app.Flag("reportEvery","report every <num> measurements").Default("5")
 
 func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("vax@kgbvax.net")
-	kingpin.CommandLine.Help = "XM122Level see github.com/kgbvax/xm122level for documentation."
+	kingpin.CommandLine.Help = "XM122Level see github.com/kgbvax/xm122level for 'documentation'."
 	kingpin.CommandLine.HelpFlag.Short('h')
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
