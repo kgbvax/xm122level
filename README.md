@@ -5,3 +5,4 @@ I use this thing to measure the level of a water body next to my house and publi
 
 Results are published to MQTT.
 This is neither modular nor does it support all XM122 services and detectors but perhaps it's a useful starting point.
+x   
