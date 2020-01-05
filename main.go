@@ -188,9 +188,9 @@ func main() {
 	writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_ACTIVATE)
 	//checkStatus(p, true)
 
-	hz := *updateRate / 1000.0
-	periodLength := 1.0 / hz
-	numAvgValues := *averageSec / periodLength
+	var hz float64 = float64(*updateRate) / 1000.0
+	var periodLength float64 = 1.0 / hz
+	numAvgValues := uint32(math.Round(float64(*averageSec) / periodLength))
 
 	log.Info("Measurements in avg value: ", numAvgValues)
 
