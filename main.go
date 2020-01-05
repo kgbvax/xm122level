@@ -134,6 +134,9 @@ func main() {
 
 	hangUpChan := make(chan os.Signal)
 	signal.Notify(hangUpChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(hangUpChan, os.Interrupt, syscall.SIGINT)
+	signal.Notify(hangUpChan, os.Interrupt, syscall.SIGQUIT)
+
 	go func() {
 		<-hangUpChan
 		hangup()
