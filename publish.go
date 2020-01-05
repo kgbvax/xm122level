@@ -2,25 +2,12 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"os"
-	"strings"
 	"time"
 )
-
-// Home Assitant MQTT Discovery support
-type MqttDiscoveryMsg struct {
-	Name              string `json:"name"`
-	StateTopic        string `json:"state_topic"`
-	UnitOfMeasurement string `json:"unit_of_measurement"`
-	UniqueId          string `json:"unique_id"`
-	ExpireAfter       int    `json:"expire_after"`
-	Qos               int    `json:"qos"`
-	//SwVersion	    string `json:"sw_version"`
-}
 
 //define a function for the default message handler
 var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
@@ -56,34 +43,11 @@ func connectMQTT(host string, username string, password string) MQTT.Client {
 	return c
 }
 
+/*
 type OpenSenseMapJSON struct {
 	Sensor string `json:"sensor"`
 	Value  string `json:"value"`
-}
-
-//Register sensor with Home Assistant via MQTT
-//requires HA MQTT Discovey to be enabled
-func registerHaDiscovery(cl MQTT.Client, sensName string, configRoot string, rootTopic string) *MqttDiscoveryMsg {
-	var newDisco = &MqttDiscoveryMsg{}
-
-	newDisco.UnitOfMeasurement = "mm"
-	newDisco.Qos = 2
-
-	saneName := strings.Join(strings.Fields(sensName), "_")
-	newDisco.Name = saneName
-	newDisco.StateTopic = rootTopic + "/" + saneName + "/state"
-	configTopic := configRoot + "/sensor/" + saneName + "/config"
-	newDisco.ExpireAfter = 5 * 60 //seconds
-	newDisco.UniqueId = "Prapp" + saneName
-
-	discoJson, err := json.Marshal(newDisco)
-	if err != nil {
-		log.Panic(err)
-	}
-	pub(cl, configTopic, string(discoJson))
-
-	return newDisco
-}
+} */
 
 func pub(cl MQTT.Client, topic string, payload string) error {
 	log.Debug("MQTT: ", topic, " <- ", payload)
@@ -114,8 +78,4 @@ func onConnect(client MQTT.Client) {
 
 func onLost(client MQTT.Client, err error) {
 	log.Warn("MQTT connection lost: ", err)
-}
-
-func sanitizeParamName(paramName string) string {
-	return strings.Join(strings.Fields(paramName), "_")
 }

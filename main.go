@@ -96,11 +96,13 @@ var serialPort = app.Flag("port", "serial port").Short('p').Required().ExistingF
 var mqttHost = app.Flag("broker", "address of MQTT broker to connect to, e.g. tcp://mqtt.eclipse.org:1883. Env: BROKER").Short('b').Envar("BROKER").String()
 var mqttUsername = app.Flag("mqttUser", "username for mqtt broker Env: BROKER_USER").Envar("BROKER_USER").String()
 var mqttPassword = app.Flag("mqttPassword", "password for mqtt broker user. Env: BROKER_PW").Envar("BROKER_PW").String()
-var haDiscoveryTopic = app.Flag("haDiscoTopic", "Home Assistant MQTT discovery topic, defaults to 'homeassistant'").Envar("HA_DISCO_TOPIC").Default("homeassistant").String()
-var mqttRootTopic = app.Flag("rooTopic", "root topic, defaults to /xm122").Envar("WOLF_MQTT_ROOT_TOPIC").Default("xm122").String()
+var stateTopic = app.Flag("stateTopic", "Home Assistant MQTT state topic, defaults to 'xm122level/state'").Envar("HA_STATE_TOPIC").Default("xm122level/state").String()
+
 var sensorName = app.Flag("sensorName", "Sensor Name (for Home Assistant)").Required().Short('s').String()
 var updateRate = app.Flag("rate", "Update frequency in MilliHertz (1/1000) , defaults to 500").Default("500").Short('r').Uint32()
 var levelOffset = app.Flag("offset", "Sensor level offset, subtracted from raw reading (in mm)").Default("0").Short('o').Uint16() //420 for my brick
+//var movingAverageNum = app.Flag("average","calculate moving average over <num> measurements").Default("5").
+//var reportEvery = app.Flag("reportEvery","report every <num> measurements").Default("5")
 
 func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("vax@kgbvax.net")
@@ -136,9 +138,6 @@ func main() {
 
 	//connect to MQTT and issue HA discovery
 	mqttConn := connectMQTT(*mqttHost, *mqttUsername, *mqttPassword)
-	sanName := sanitizeParamName(*sensorName)
-
-	stateTopic := registerHaDiscovery(mqttConn, sanName, *haDiscoveryTopic, *mqttRootTopic).StateTopic
 
 	checkStatus(p, true)
 
@@ -147,14 +146,14 @@ func main() {
 
 	writeRegister(p, REG_MODE_SELECTION, MODE_DISTANCE_FIXED_PEAK)
 	checkStatus(p, true)
-	log.Info("mode: ", readRegister(p, REG_MODE_SELECTION))
+	log.Debug("mode: ", readRegister(p, REG_MODE_SELECTION))
 
 	log.Debug("old run factor ", readRegister(p, DIST_RUN_FACTOR))
 	writeRegister(p, DIST_RUN_FACTOR, 950) //default 0,7
 	checkStatus(p, true)
 
 	log.Debug("old range start ", readRegister(p, DIST_RANGE_START))
-	writeRegister(p, DIST_RANGE_START, 150)
+	writeRegister(p, DIST_RANGE_START, 200)
 	checkStatus(p, true)
 
 	log.Debug("old range length ", readRegister(p, DIST_RANGE_LENGTH))
@@ -189,7 +188,7 @@ func main() {
 	//checkStatus(p, true)
 
 	for {
-		publishDistanceStream(p, mqttConn, stateTopic)
+		publishDistanceStream(p, mqttConn, *stateTopic)
 	}
 
 }
@@ -300,6 +299,7 @@ func publishDistanceStream(p *serial.Port, cl mqtt.Client, topic string) {
 			maxAxVal = entry.dist * 1000.0
 		}
 	}
+
 	log.Debugf("#VAL %f", maxAxVal)
 
 	maxAxVal = maxAxVal - float32(*levelOffset)
