@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/RobinUS2/golang-moving-average"
 	"github.com/creasty/defaults"
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/mikepb/go-serial"
@@ -93,9 +94,9 @@ const (
 var app = kingpin.New("xm122level", "Reads distance from Acconeer XM122 and publishes to MQTT (Home Assistant)")
 var debug = app.Flag("debug", "Enable debug mode. Env: DEBUG").Envar("DEBUG").Short('d').Bool()
 var serialPort = app.Flag("port", "serial port device name").Short('p').Required().ExistingFile()
-var mqttHost = app.Flag("broker", "address of MQTT broker to connect to, e.g. tcp://mqtt.eclipse.org:1883. Env: BROKER").Short('b').Envar("BROKER").String()
-var mqttUsername = app.Flag("mqttUser", "username for mqtt broker Env: BROKER_USER").Envar("BROKER_USER").String()
-var mqttPassword = app.Flag("mqttPassword", "password for mqtt broker user. Env: BROKER_PW").Envar("BROKER_PW").String()
+var mqttHost = app.Flag("broker", "address of MQTT broker to connect to, e.g. tcp://mqtt.eclipse.org:1883. Env: BROKER").Short('b').Required().Envar("BROKER").String()
+var mqttUsername = app.Flag("mqttUser", "username for mqtt broker Env: BROKER_USER").Envar("BROKER_USER").Required().String()
+var mqttPassword = app.Flag("mqttPassword", "password for mqtt broker user. Env: BROKER_PW").Envar("BROKER_PW").Required().String()
 var stateTopic = app.Flag("stateTopic", "Home Assistant MQTT state topic").Envar("HA_STATE_TOPIC").Default("xm122level/state").String()
 var rawTopic = app.Flag("rawTopic", "if set, MQTT topic that recieves all (unprocessed) measurements ").String()
 var rangeStart = app.Flag("rangeStart", "Start (min) of measurement range in mm").Default("300").Uint32()
@@ -103,6 +104,8 @@ var rangeEnd = app.Flag("rangeEnd", "End (max) of measurement range in mm").Defa
 
 var updateRate = app.Flag("rate", "Update frequency in 1/1000 Hertz").Default("500").Short('r').Uint32()
 var levelOffset = app.Flag("offset", "Sensor level offset, subtracted from raw reading (in mm)").Default("0").Short('o').Uint16() //420 for my brick
+
+var averageSec = app.Flag("averageSec", "average values over <Num> seconds").Default("15").Uint32()
 
 //var movingAverageNum = app.Flag("average","calculate moving average over <num> measurements").Default("5").
 //var reportEvery = app.Flag("reportEvery","report every <num> measurements").Default("5")
@@ -151,19 +154,15 @@ func main() {
 	checkStatus(p, true)
 	log.Debug("mode: ", readRegister(p, REG_MODE_SELECTION))
 
-	log.Debug("old run factor ", readRegister(p, DIST_RUN_FACTOR))
 	writeRegister(p, DIST_RUN_FACTOR, 950) //default 0,7
 	checkStatus(p, true)
 
-	log.Debug("old range start ", readRegister(p, DIST_RANGE_START))
 	writeRegister(p, DIST_RANGE_START, *rangeStart)
 	checkStatus(p, true)
 
-	log.Debug("old range length ", readRegister(p, DIST_RANGE_LENGTH))
 	writeRegister(p, DIST_RANGE_LENGTH, *rangeEnd) //mm
 	checkStatus(p, true)
 
-	log.Debug("old sensor power mode ", readRegister(p, DIST_SENSOR_POWER_MODE))
 	writeRegister(p, DIST_SENSOR_POWER_MODE, 3)
 	checkStatus(p, true)
 
@@ -171,7 +170,6 @@ func main() {
 	writeRegister(p, DIST_THR_AMPLITUDE, 150)
 	checkStatus(p, true)
 
-	log.Debug("old update rate ", readRegister(p, DIST_UPDATE_RATE))
 	writeRegister(p, DIST_UPDATE_RATE, *updateRate) //mHz
 	checkStatus(p, true)
 
@@ -190,10 +188,64 @@ func main() {
 	writeRegister(p, REG_MAIN_CONTROL, MAIN_CREATE_ACTIVATE)
 	//checkStatus(p, true)
 
-	for {
-		publishDistanceStream(p, mqttConn, *stateTopic)
-	}
+	hz := *updateRate / 1000.0
+	periodLength := 1.0 / hz
+	numAvgValues := *averageSec / periodLength
 
+	log.Info("Measurements in avg value: ", numAvgValues)
+
+	publishDistanceStreamForever(p, mqttConn, stateTopic, rawTopic, numAvgValues)
+
+}
+
+func publishDistanceStreamForever(p *serial.Port, cl mqtt.Client, stateTopic *string, rawTopic *string, numAvgValues uint32) {
+	var buf1 [1]byte
+	var buf2 [2]byte
+	ma := movingaverage.New(int(numAvgValues)) // 5 is the window size
+	var maValCount uint32 = 0
+
+	for {
+
+		_, _ = p.Read(buf1[:]) //start
+
+		_, _ = p.Read(buf2[:]) //len
+		len := binary.LittleEndian.Uint16(buf2[:])
+		//log.Debugf("Stream msg len: %v",len)
+
+		_, _ = p.Read(buf1[:]) // type
+		var msgBuf []byte = make([]byte, len)
+
+		p.Read(msgBuf)
+
+		entries := decodeStreamingPayloadDistance(msgBuf)
+
+		//pick value with max(ax)
+		var maxAx uint16 = 0
+		var maxAxVal float32
+		for _, entry := range entries {
+			if maxAx < entry.ax {
+				maxAx = entry.ax
+				maxAxVal = entry.dist * 1000.0
+			}
+		}
+
+		log.Debugf("#VAL %f", maxAxVal)
+		if rawTopic != nil {
+			pub(cl, *rawTopic, fmt.Sprintf("%f", maxAxVal))
+		}
+
+		maxAxVal = maxAxVal - float32(*levelOffset)
+		ma.Add(float64(maxAxVal))
+
+		maValCount++
+
+		if maValCount > numAvgValues {
+			pub(cl, *stateTopic, fmt.Sprintf("%f", ma.Avg()))
+			maValCount = 0
+		}
+
+		_, _ = p.Read(buf1[:]) //end
+	}
 }
 
 func hangup() {
@@ -274,44 +326,6 @@ func writeRegister(p *serial.Port, reg RegT, val uint32) uint32 {
 	}
 	return resp.Value
 
-}
-
-func publishDistanceStream(p *serial.Port, cl mqtt.Client, topic string) {
-	var buf1 [1]byte
-	var buf2 [2]byte
-
-	_, _ = p.Read(buf1[:]) //start
-
-	_, _ = p.Read(buf2[:]) //len
-	len := binary.LittleEndian.Uint16(buf2[:])
-	//log.Debugf("Stream msg len: %v",len)
-
-	_, _ = p.Read(buf1[:]) // type
-	var msgBuf []byte = make([]byte, len)
-
-	p.Read(msgBuf)
-
-	entries := decodeStreamingPayloadDistance(msgBuf)
-
-	//pick value with max(ax)
-	var maxAx uint16 = 0
-	var maxAxVal float32
-	for _, entry := range entries {
-		if maxAx < entry.ax {
-			maxAx = entry.ax
-			maxAxVal = entry.dist * 1000.0
-		}
-	}
-
-	log.Debugf("#VAL %f", maxAxVal)
-	if rawTopic != nil {
-		pub(cl, *rawTopic, fmt.Sprintf("%f", maxAxVal))
-	}
-	maxAxVal = maxAxVal - float32(*levelOffset)
-
-	pub(cl, topic, fmt.Sprintf("%f", maxAxVal))
-
-	_, _ = p.Read(buf1[:]) //end
 }
 
 type distEntry struct {
