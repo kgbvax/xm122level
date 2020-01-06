@@ -103,7 +103,7 @@ var rangeStart = app.Flag("rangeStart", "Start (min) of measurement range in mm"
 var rangeEnd = app.Flag("rangeEnd", "End (max) of measurement range in mm").Default("1000").Uint32()
 
 var updateRate = app.Flag("rate", "Measurement frequency in 1/1000 Hertz").Default("500").Short('r').Uint32()
-var levelOffset = app.Flag("offset", "Sensor level offset, subtracted from raw reading (in mm)").Default("0").Short('o').Uint16() //420 for my brick
+var levelOffset = app.Flag("offset", "Sensor level offset, subtracted from raw reading (in mm). offsetValue := Offset - measuredValue").Default("0").Short('o').Uint16() //420 for my brick
 
 var averageSec = app.Flag("reportSec", "report a moving average over <value> seconds every <value> seconds").Default("60").Uint32()
 
@@ -240,7 +240,7 @@ func publishDistanceStreamForever(p *serial.Port, cl mqtt.Client, stateTopic *st
 			pub(cl, *rawTopic, fmt.Sprintf("%f", maxAxVal))
 		}
 
-		maxAxVal = maxAxVal - float32(*levelOffset)
+		maxAxVal = float32(*levelOffset) - maxAxVal
 		ma.Add(float64(maxAxVal))
 
 		maValCount++
