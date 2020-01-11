@@ -109,6 +109,8 @@ var levelOffset = app.Flag("offset", "Sensor level offset (in mm) to compensate 
 
 var averageSec = app.Flag("average", "Report a moving average over <value> seconds every <value> seconds").Default("60").Uint32()
 
+var graylogHook *graylog.GraylogHook
+
 //var movingAverageNum = app.Flag("average","calculate moving average over <num> measurements").Default("5").
 //var reportEvery = app.Flag("reportEvery","report every <num> measurements").Default("5")
 
@@ -119,12 +121,12 @@ func main() {
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	if logGraylog != nil {
-		hook := graylog.NewAsyncGraylogHook(*logGraylog, map[string]interface{}{})
-		defer hook.Flush()
-		log.AddHook(hook)
+		graylogHook = graylog.NewAsyncGraylogHook(*logGraylog, map[string]interface{}{})
+		defer graylogHook.Flush()
+		log.AddHook(graylogHook)
 		log.Info("added Graylog hook: ", *logGraylog)
-
 	}
+
 	if *debug == true {
 		log.SetLevel(log.DebugLevel)
 		log.SetReportCaller(true)
