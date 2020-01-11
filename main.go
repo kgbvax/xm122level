@@ -5,6 +5,7 @@ import (
 	"github.com/RobinUS2/golang-moving-average"
 	"github.com/creasty/defaults"
 	"github.com/eclipse/paho.mqtt.golang"
+	"github.com/gemnasium/logrus-graylog-hook/v3"
 	"github.com/mikepb/go-serial"
 	log "github.com/sirupsen/logrus"
 	"github.com/vipally/binary"
@@ -101,11 +102,12 @@ var stateTopic = app.Flag("stateTopic", "MQTT state topic").Envar("HA_STATE_TOPI
 var rawTopic = app.Flag("rawTopic", "if set, MQTT topic that receives all (unprocessed) measurements ").String()
 var rangeStart = app.Flag("rangeStart", "Start (min) of measurement range in mm").Default("300").Uint32()
 var rangeEnd = app.Flag("rangeEnd", "End (max) of measurement range in mm").Default("1000").Uint32()
+var logGraylog = app.Flag("graylog", "log to Graylog instead of stdout").String()
 
 var updateRate = app.Flag("rate", "Measurement frequency in 1/1000 Hertz").Default("500").Short('r').Uint32()
-var levelOffset = app.Flag("offset", "Sensor level offset, subtracted from raw reading (in mm). offsetValue := Offset - measuredValue").Default("0").Short('o').Uint16() //420 for my brick
+var levelOffset = app.Flag("offset", "Sensor level offset (in mm) to compensate distance between sensor and '0' level.  OffsetValue := Offset - MeasuredValue").Default("0").Short('o').Uint16() //420 for my brick
 
-var averageSec = app.Flag("reportSec", "report a moving average over <value> seconds every <value> seconds").Default("60").Uint32()
+var averageSec = app.Flag("average", "Report a moving average over <value> seconds every <value> seconds").Default("60").Uint32()
 
 //var movingAverageNum = app.Flag("average","calculate moving average over <num> measurements").Default("5").
 //var reportEvery = app.Flag("reportEvery","report every <num> measurements").Default("5")
@@ -116,6 +118,13 @@ func main() {
 	kingpin.CommandLine.HelpFlag.Short('h')
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
+	if logGraylog != nil {
+		hook := graylog.NewAsyncGraylogHook(*logGraylog, map[string]interface{}{})
+		defer hook.Flush()
+		log.AddHook(hook)
+		log.Info("added Graylog hook: ", *logGraylog)
+
+	}
 	if *debug == true {
 		log.SetLevel(log.DebugLevel)
 		log.SetReportCaller(true)
