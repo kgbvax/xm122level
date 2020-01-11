@@ -11,7 +11,10 @@ import (
 
 //define a function for the default message handler
 var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
-	log.Debug("TOPIC/MSG", msg.Topic(), "/", msg.Payload())
+	log.WithFields(log.Fields{
+		"topic":   msg.Topic(),
+		"payload": msg.Payload(),
+	}).Debug("MQTT recieved")
 	//msg.Ack()
 }
 
@@ -51,7 +54,11 @@ type OpenSenseMapJSON struct {
 } */
 
 func pub(cl MQTT.Client, topic string, payload string) error {
-	log.Debug("MQTT: ", topic, " <- ", payload)
+	log.WithFields(log.Fields{
+		"topic":   topic,
+		"payload": payload,
+	}).Debug("MQTT")
+
 	if token := cl.Publish(topic, 1, false, payload); token.Wait() && token.Error() != nil {
 		log.Error("failed to publish message to ", topic, " error: ", token.Error())
 		return token.Error()
