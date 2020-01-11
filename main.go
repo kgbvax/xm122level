@@ -102,7 +102,7 @@ var stateTopic = app.Flag("stateTopic", "MQTT state topic").Envar("HA_STATE_TOPI
 var rawTopic = app.Flag("rawTopic", "if set, MQTT topic that receives all (unprocessed) measurements ").String()
 var rangeStart = app.Flag("rangeStart", "Start (min) of measurement range in mm").Default("300").Uint32()
 var rangeEnd = app.Flag("rangeEnd", "End (max) of measurement range in mm").Default("1000").Uint32()
-var logGraylog = app.Flag("graylog", "log to Graylog instead of stdout").String()
+var logGraylog = app.Flag("graylog", "also log to Graylog using GELF: <graylog_ip>:<graylog_port>").String()
 
 var updateRate = app.Flag("rate", "Measurement frequency in 1/1000 Hertz").Default("500").Short('r').Uint32()
 var levelOffset = app.Flag("offset", "Sensor level offset (in mm) to compensate distance between sensor and '0' level.  OffsetValue := Offset - MeasuredValue").Default("0").Short('o').Uint16() //420 for my brick
@@ -124,7 +124,7 @@ func main() {
 		graylogHook = graylog.NewAsyncGraylogHook(*logGraylog, map[string]interface{}{})
 		defer graylogHook.Flush()
 		log.AddHook(graylogHook)
-		log.Info("added Graylog hook: ", *logGraylog)
+		log.Info("added Graylog hook to: ", *logGraylog)
 	}
 
 	if *debug == true {
