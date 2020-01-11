@@ -121,6 +121,7 @@ func main() {
 		log.SetReportCaller(true)
 	}
 
+	log.SetFormatter(&log.JSONFormatter{})
 	options := serial.RawOptions
 	options.BitRate = 115200
 	options.Mode = serial.MODE_READ_WRITE
@@ -235,7 +236,8 @@ func publishDistanceStreamForever(p *serial.Port, cl mqtt.Client, stateTopic *st
 			}
 		}
 
-		log.Debugf("#VAL %f", maxAxVal)
+		log.WithField("raw-value", maxAxVal).Debug("maxAxVal")
+
 		if rawTopic != nil {
 			pub(cl, *rawTopic, fmt.Sprintf("%f", maxAxVal))
 		}
@@ -362,7 +364,10 @@ func decodeStreamingPayloadDistance(buf []byte) []distEntry {
 			offset += 4
 			ax := binary.LittleEndian.Uint16(buf[offset : offset+2])
 			offset += 2
-			log.Debugf("f1: %v ax: %v", f1*100.0, ax)
+			log.WithFields(log.Fields{
+				"f1": f1 * 100.0,
+				"ax": ax,
+			}).Debug("echoes")
 			entries[i].dist = f1
 			entries[i].ax = ax
 		}
@@ -420,28 +425,28 @@ func checkStatus(p *serial.Port, printStatus bool) uint32 {
 	log.Trace(fmt.Sprintf("Status 0x%x", regValue))
 	if printStatus {
 		if 0 != regValue&StatusErrActivating {
-			log.Info("STATUS: Error activating the requested service or detector")
+			log.Error("STATUS: Error activating the requested service or detector")
 		}
 		if 0 != regValue&StatusErrCreating {
-			log.Info("STATUS: Error creating the requested service or detector.")
+			log.Error("STATUS: Error creating the requested service or detector.")
 		}
 		if 0 != regValue&StatusInvalidMode {
-			log.Info("STATUS: Invalid Mode.")
+			log.Error("STATUS: Invalid Mode.")
 		}
 		if 0 != regValue&StatusInvalidCommand {
-			log.Info("STATUS: Invalid command or parameter received..")
+			log.Error("STATUS: Invalid command or parameter received..")
 		}
 		if 0 != regValue&StatusError {
-			log.Info("STATUS: An error occurred in the module.")
+			log.Error("STATUS: An error occurred in the module.")
 		}
 		if 0 != regValue&StatusDataReady {
-			log.Info("STATUS: Data is ready to be read from the buffer")
+			log.Error("STATUS: Data is ready to be read from the buffer")
 		}
 		if 0 != regValue&StatusServActivated {
-			log.Info("STATUS: Service or detector is activated.")
+			log.Error("STATUS: Service or detector is activated.")
 		}
 		if 0 != regValue&StatusServ {
-			log.Info("STATUS: Service or detector is created.")
+			log.Error("STATUS: Service or detector is created.")
 		}
 	}
 	return regValue
