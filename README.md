@@ -1,8 +1,7 @@
 # xm122level
-Acconeer XM122 Fluid Level Metering
+[Acconeer XM122](https://www.acconeer.com/products) Fluid Level Metering
 
 I use this thing to measure the level of a water body next to my house and publish the results to MQTT.
-
 
 This is neither modular nor does it support all XM122 services and detectors but perhaps it's a useful starting point for interacting with XM122 in golang.
 
@@ -34,7 +33,8 @@ Flags:
 
 # My Setup
 
-XM122 hooked up to a RPi3 via USB. Further processing is: MQTT -> Home-Assistant -> Node-Red -> InfluxDB -> Grafana.
+Hardware: XM122 hooked up to a RPi3 via USB, power via POE Hat, all in a simple plastic box.
+Further processing is: MQTT -> Home-Assistant -> Node-Red -> InfluxDB -> Grafana.
 
 excerpt from HA configuration.yaml 
 ```
