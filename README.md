@@ -34,7 +34,7 @@ Flags:
 
 # My Setup
 
-XM122 hooked up to a RPi3 via USB. Further processing is HASS.IO MQTT, Home-Assistant, InfluxDB, Grafana.
+XM122 hooked up to a RPi3 via USB. Further processing is: MQTT -> Home-Assistant -> Node-Red -> InfluxDB -> Grafana.
 
 excerpt from HA configuration.yaml 
 ```
@@ -44,7 +44,7 @@ sensor Gräfte:
     name: "Gräfte Pegel"
     unit_of_measurement: "mm"
     qos: 2
-    expire_after: 120
+    expire_after: 240
   - platform: mqtt
     state_topic: "xm122level/raw"
     name: "Gräfte Pegel Raw"
