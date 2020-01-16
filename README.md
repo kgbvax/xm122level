@@ -55,4 +55,5 @@ sensor Gräfte:
 
 
   
-![Holzbrettsensor](/holzbrettsensor.jpg)
+![Holzbrettsensor](/doc/close.jpeg)
+![Wehr](/doc/weir.jpeg)
