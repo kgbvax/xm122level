@@ -55,4 +55,4 @@ sensor Gräfte:
 
 
   
-![Holzbrettsensor](/holzbrettsensor.jpg)
+![Holzbrettsensor](/doc/close.jpeg)
