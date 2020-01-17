@@ -53,7 +53,7 @@ sensor Gräfte:
     expire_after: 120
 ```
 
-
+Output of my installation: Mühle am Vortlager Damm, Lengerich, Germany: [https://mühle-vortlage.de](https://mühle-vortlage.de)
   
 ![Holzbrettsensor](/doc/close.jpeg)
 ![Wehr](/doc/weir.jpeg)
