@@ -1,5 +1,6 @@
 # xm122level
-[Acconeer XM122](https://www.acconeer.com/products) Fluid Level Metering
+[Acconeer XM122](https://www.acconeer.com/products) Fluid Level Metering. 
+XM122 is a module based on Acconeer's A1 60Ghz radar, which they call "pulsed coherend radar". 
 
 I use this thing to measure the level of a water body next to my house and publish the results to MQTT.
 
