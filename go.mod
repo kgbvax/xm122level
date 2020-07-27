@@ -6,7 +6,7 @@ require (
 	github.com/RobinUS2/golang-moving-average v1.0.0
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
-	github.com/creasty/defaults v1.3.0
+	github.com/creasty/defaults v1.5.0
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/gemnasium/logrus-graylog-hook/v3 v3.0.2
 	github.com/mikepb/go-serial v0.0.0-20180731022703-d5134cecf05a
