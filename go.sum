@@ -13,6 +13,8 @@ github.com/eclipse/paho.mqtt.golang v1.2.0 h1:1F8mhG9+aO5/xpdtFkW4SxOJB67ukuDC3t
 github.com/eclipse/paho.mqtt.golang v1.2.0/go.mod h1:H9keYFcgq3Qr5OUJm/JZI/i6U7joQ8SYLhZwfeOo6Ts=
 github.com/gemnasium/logrus-graylog-hook/v3 v3.0.2 h1:K9u07HPH47zt+6NVDtk1Fhvsk3JtNyExsul600ColWo=
 github.com/gemnasium/logrus-graylog-hook/v3 v3.0.2/go.mod h1:B0CG0J5YrqcuSDEaRswR1K+5XgsPkfiBA6dgS7ZKKBs=
+github.com/gemnasium/logrus-graylog-hook/v3 v3.0.3 h1:YQHp/LxUTeZhgnXKbJASRii315h+HWtPd5ctewP4Pms=
+github.com/gemnasium/logrus-graylog-hook/v3 v3.0.3/go.mod h1:wi1zWv9tIvyLSMLCAzgRP+YR24oLVQVBHfPPKjtht44=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1 h1:mweAR1A6xJ3oS2pRaGiHgQ4OO8tzTaLawm8vnODuwDk=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/mikepb/go-serial v0.0.0-20180731022703-d5134cecf05a h1:dCv1LIqgkmFyW9NTRX16FANqPkGcyCZAPV54TMGUV+I=
